@@ -292,7 +292,26 @@
     });
   }
 
+  /* ---------- Demo guard ---------- */
+  // Sample results have no real files. Without this, the browser would save
+  // the page itself when a download button is clicked.
+  function onResultClick(e) {
+    const link = e.target.closest('a[href]');
+    if (!link || !DEMO) return;
+    e.preventDefault();
+    let note = $('demo-note');
+    if (!note) {
+      note = document.createElement('p');
+      note.id = 'demo-note';
+      note.setAttribute('role', 'status');
+      note.className = 'rounded-xl bg-tomato-soft px-3.5 py-2.5 text-[13px] font-semibold text-tomato-ink';
+      note.textContent = 'Demo mode uses sample data, so there is no real file. Remove ?demo from the address (with the backend running) to download for real.';
+      $('extra-formats').after(note);
+    }
+  }
+
   /* ---------- Wire up ---------- */
+  states.result.addEventListener('click', onResultClick);
   input.addEventListener('input', onInput);
   toggleBtn.addEventListener('click', onToggle);
   form.addEventListener('submit', onSubmit);
