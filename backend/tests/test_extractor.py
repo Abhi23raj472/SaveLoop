@@ -33,7 +33,8 @@ def _payload(fmt):
     return tokens.verify(fmt["url"].split("/api/download/")[1].split("?")[0])
 
 
-def test_builds_qualities_gif_and_images():
+def test_builds_qualities_gif_and_images(monkeypatch):
+    monkeypatch.setattr(extractor, "has_ffmpeg", lambda: True)
     res = extractor.build_result(IG_INFO, "instagram")
     assert res["creator"] == "@sample_creator"
     assert res["platform"] == "instagram"
@@ -53,14 +54,16 @@ def test_builds_qualities_gif_and_images():
     assert res["thumbnail"].endswith("?inline=1")
 
 
-def test_never_uses_untrusted_hosts():
+def test_never_uses_untrusted_hosts(monkeypatch):
+    monkeypatch.setattr(extractor, "has_ffmpeg", lambda: True)
     res = extractor.build_result(IG_INFO, "instagram")
     for f in res["formats"]:
         for u in _payload(f)["u"]:
             assert "evil.com" not in u and ".m3u8" not in u
 
 
-def test_image_only_post():
+def test_image_only_post(monkeypatch):
+    monkeypatch.setattr(extractor, "has_ffmpeg", lambda: True)
     info = {"id": "1", "thumbnails": [{"url": "https://pbs.twimg.com/media/a.jpg", "width": 1200, "height": 800}]}
     res = extractor.build_result(info, "x")
     assert res["kind"] == "Image"
@@ -73,3 +76,16 @@ def test_error_mapping():
     assert extractor.map_ytdlp_error("HTTP Error 404: Not Found").code == "not_found"
     assert extractor.map_ytdlp_error("ERROR: Unsupported URL: x").code == "unsupported_platform"
     assert extractor.map_ytdlp_error("something odd").code == "extraction_failed"
+
+
+def test_without_ffmpeg_only_ready_made_files(monkeypatch):
+    monkeypatch.setattr(extractor, "has_ffmpeg", lambda: False)
+    res = extractor.build_result(IG_INFO, "instagram")
+    ids = [f["id"] for f in res["formats"]]
+    assert ids == ["v720", "jpg"]
+    assert _payload(res["formats"][0])["m"] == "direct"
+
+
+def test_photo_only_post_maps_to_no_video():
+    err = extractor.map_ytdlp_error("ERROR: [twitter] 123: Media #1 is not a video")
+    assert err.code == "no_video" and err.status == 422

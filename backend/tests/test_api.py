@@ -85,3 +85,8 @@ def test_missing_ffmpeg_is_reported(client, monkeypatch):
     t = tokens.sign({"m": "gif", "u": ["https://pbs.twimg.com/a.jpg"]})
     r = client.get(f"/api/download/{t}")
     assert r.status_code == 500 and "FFmpeg" in r.json()["error"]["message"]
+
+
+def test_httpx_urls_not_logged():
+    import logging
+    assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING

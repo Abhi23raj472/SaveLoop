@@ -26,6 +26,7 @@
     unsupported_platform: ["That site isn't supported yet", 'SaveLoop works with public posts from Instagram, Facebook and X.'],
     private: ['This post is private', 'SaveLoop can only save media from public posts. Try a different link.'],
     not_found: ['Post not found', 'It may have been deleted, or the link is incomplete.'],
+    no_video: ['No video in this post', 'This post only has photos. SaveLoop can save videos and GIFs for now.'],
     rate_limited: ['Too many requests', 'Please wait a moment and try again.'],
     extraction_failed: ["We couldn't get this one", 'Something went wrong while fetching the media. Please try again.'],
     network: ["Can't reach SaveLoop", 'Check your connection and try again.'],

@@ -4,6 +4,7 @@ Nothing is downloaded here: yt-dlp only reads metadata and direct media URLs.
 """
 import logging
 import re
+import shutil
 
 import yt_dlp
 
@@ -63,13 +64,19 @@ def fetch_info(url: str) -> dict:
     return info
 
 
+def has_ffmpeg() -> bool:
+    return shutil.which("ffmpeg") is not None
+
+
 def map_ytdlp_error(message: str) -> errors.ApiError:
     m = message.lower()
+    if "is not a video" in m or "no video could be found" in m:
+        return errors.no_video("This post only has photos. SaveLoop can save videos and GIFs for now.")
     if "unsupported url" in m:
         return errors.unsupported_platform()
     if any(k in m for k in ("private", "login required", "log in", "requires authentication", "age-restricted")):
         return errors.private()
-    if any(k in m for k in ("not found", "404", "does not exist", "unavailable", "removed", "deleted", "no video")):
+    if any(k in m for k in ("not found", "404", "does not exist", "unavailable", "removed", "deleted")):
         return errors.not_found()
     if "429" in m or "too many requests" in m:
         return errors.rate_limited("The platform is busy right now. Please try again in a minute.")
@@ -119,13 +126,16 @@ def _slug(value: str, limit: int = 40) -> str:
     return re.sub(r"[^A-Za-z0-9_-]+", "-", value or "").strip("-")[:limit] or "media"
 
 
-def _pick_video_sources(formats: list[dict]) -> list[dict]:
+def _pick_video_sources(formats: list[dict], can_mux: bool = True) -> list[dict]:
     """For each quality target, choose a progressive format or a video+audio pair."""
     direct = [f for f in formats if _is_direct(f)]
     progressive = [f for f in direct if _has_video(f) and _has_audio(f)]
     video_only = [f for f in direct if _has_video(f) and not _has_audio(f)]
     audio_only = [f for f in direct if _has_audio(f) and not _has_video(f)]
     best_audio = max(audio_only, key=lambda f: f.get("abr") or f.get("tbr") or 0, default=None)
+    if not can_mux:
+        # Without FFmpeg only ready-made files with sound can be offered.
+        video_only, best_audio = ([] if progressive else video_only), None
 
     candidates = progressive + (video_only if best_audio else [])
     if not candidates:
@@ -170,7 +180,8 @@ def build_result(info: dict, platform: str) -> dict:
     base = f"saveloop-{platform}-{_slug(str(entry.get('id') or ''))}"
     out_formats = []
 
-    picks = _pick_video_sources(formats)
+    ffmpeg = has_ffmpeg()
+    picks = _pick_video_sources(formats, can_mux=ffmpeg)
     for p in picks:
         f, audio = p["fmt"], p["audio"]
         quality = f"{p['side']}p" if p["side"] else "Best"
@@ -190,7 +201,7 @@ def build_result(info: dict, platform: str) -> dict:
             "url": f"/api/download/{tokens.sign(payload)}",
         })
 
-    if picks:
+    if picks and ffmpeg:
         smallest = min(picks, key=lambda p: p["side"] or 10_000)["fmt"]
         payload = {"m": "gif", "u": [smallest["url"]], "h": _headers(smallest) or _headers(entry),
                    "n": f"{base}.gif", "t": "image/gif"}
@@ -201,9 +212,14 @@ def build_result(info: dict, platform: str) -> dict:
     preview_url = None
     if thumb:
         h = _headers(entry)
-        for ext, mime in (("webp", "image/webp"), ("png", "image/png")):
-            payload = {"m": ext, "u": [thumb], "h": h, "n": f"{base}.{ext}", "t": mime}
-            out_formats.append({"id": ext, "type": "image", "ext": ext, "label": f"{ext.upper()} image",
+        if ffmpeg:
+            for ext, mime in (("webp", "image/webp"), ("png", "image/png")):
+                payload = {"m": ext, "u": [thumb], "h": h, "n": f"{base}.{ext}", "t": mime}
+                out_formats.append({"id": ext, "type": "image", "ext": ext, "label": f"{ext.upper()} image",
+                                    "url": f"/api/download/{tokens.sign(payload)}"})
+        else:
+            payload = {"m": "direct", "u": [thumb], "h": h, "n": f"{base}.jpg", "t": "image/jpeg"}
+            out_formats.append({"id": "jpg", "type": "image", "ext": "jpg", "label": "JPG image",
                                 "url": f"/api/download/{tokens.sign(payload)}"})
         preview_url = f"/api/download/{tokens.sign({'m': 'image', 'u': [thumb], 'h': h, 'n': 'preview', 't': ''})}?inline=1"
 

@@ -15,6 +15,9 @@ from .ratelimit import RateLimiter
 from .security import validate_post_url
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s: %(message)s")
+# httpx logs full request URLs at INFO; keep those out of the logs.
+for _noisy in ("httpx", "httpcore"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 app = FastAPI(title="SaveLoop", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -93,6 +96,14 @@ async def download(token: str, request: Request, inline: int = 0):
     if payload.get("m") != "image" and not download_limiter.allow(client_ip(request)):
         raise errors.rate_limited()
     return await downloads.stream(payload, inline=bool(inline) or payload.get("m") == "image")
+
+
+@app.on_event("startup")
+async def check_ffmpeg():
+    if not extractor.has_ffmpeg():
+        logging.getLogger("saveloop").warning(
+            "FFmpeg not found on PATH: GIF, PNG/WEBP and some 1080p downloads are turned off. "
+            "Install FFmpeg and restart to enable them.")
 
 
 @app.get("/healthz")
