@@ -4,14 +4,18 @@ Nothing is downloaded here: yt-dlp only reads metadata and direct media URLs.
 """
 import logging
 import re
+import shutil
 
 import yt_dlp
 
 from . import config, errors, tokens
 from .security import is_allowed_media_url
 
+log = logging.getLogger("saveloop")
+_URL_RE = re.compile(r"https?://\S+")
+
 QUALITY_TARGETS = (1080, 720, 480)
-SAFE_HEADERS = ("User-Agent", "Referer", "Origin", "Accept", "Accept-Language")
+SAFE_HEADERS = ("User-Agent", "Referer", "Origin")
 KIND_LABELS = {"instagram": "Post", "facebook": "Video", "x": "Post"}
 
 
@@ -48,21 +52,31 @@ def fetch_info(url: str) -> dict:
         with yt_dlp.YoutubeDL(_ydl_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
     except yt_dlp.utils.DownloadError as exc:
-        raise map_ytdlp_error(str(exc)) from None
-    except Exception:  # noqa: BLE001 - never leak internals to the client
+        err = map_ytdlp_error(str(exc))
+        # Logged so the operator can see why; URLs are scrubbed.
+        log.warning("yt-dlp failed (%s): %s", err.code, _URL_RE.sub("<url>", str(exc))[:400])
+        raise err from None
+    except Exception as exc:  # noqa: BLE001 - never leak internals to the client
+        log.exception("yt-dlp crashed: %s", type(exc).__name__)
         raise errors.extraction_failed() from None
     if not info:
         raise errors.not_found()
     return info
 
 
+def has_ffmpeg() -> bool:
+    return shutil.which("ffmpeg") is not None
+
+
 def map_ytdlp_error(message: str) -> errors.ApiError:
     m = message.lower()
+    if "is not a video" in m or "no video could be found" in m:
+        return errors.no_video("This post only has photos. SaveLoop can save videos and GIFs for now.")
     if "unsupported url" in m:
         return errors.unsupported_platform()
     if any(k in m for k in ("private", "login required", "log in", "requires authentication", "age-restricted")):
         return errors.private()
-    if any(k in m for k in ("not found", "404", "does not exist", "unavailable", "removed", "deleted", "no video")):
+    if any(k in m for k in ("not found", "404", "does not exist", "unavailable", "removed", "deleted")):
         return errors.not_found()
     if "429" in m or "too many requests" in m:
         return errors.rate_limited("The platform is busy right now. Please try again in a minute.")
@@ -100,25 +114,48 @@ def _is_direct(f: dict) -> bool:
     )
 
 
+VIDEO_EXTS = ("mp4", "webm", "mov", "m4v")
+
+
+def _is_x_gif(f: dict) -> bool:
+    # X serves animated GIFs as silent MP4s under /tweet_video/.
+    return "/tweet_video/" in (f.get("url") or "")
+
+
 def _has_video(f: dict) -> bool:
-    return f.get("vcodec") not in (None, "none") or (f.get("vcodec") is None and bool(f.get("height")))
+    vcodec = f.get("vcodec")
+    if vcodec == "none":
+        return False
+    if vcodec:
+        return True
+    # Codec unknown (common for X): decide from the container or size.
+    return f.get("ext") in VIDEO_EXTS or bool(f.get("height"))
 
 
 def _has_audio(f: dict) -> bool:
-    return f.get("acodec") not in (None, "none")
+    acodec = f.get("acodec")
+    if acodec == "none":
+        return False
+    if acodec:
+        return True
+    # Codec unknown: X GIFs are silent; other MP4s are usually complete files.
+    return not _is_x_gif(f)
 
 
 def _slug(value: str, limit: int = 40) -> str:
     return re.sub(r"[^A-Za-z0-9_-]+", "-", value or "").strip("-")[:limit] or "media"
 
 
-def _pick_video_sources(formats: list[dict]) -> list[dict]:
+def _pick_video_sources(formats: list[dict], can_mux: bool = True) -> list[dict]:
     """For each quality target, choose a progressive format or a video+audio pair."""
     direct = [f for f in formats if _is_direct(f)]
     progressive = [f for f in direct if _has_video(f) and _has_audio(f)]
     video_only = [f for f in direct if _has_video(f) and not _has_audio(f)]
     audio_only = [f for f in direct if _has_audio(f) and not _has_video(f)]
     best_audio = max(audio_only, key=lambda f: f.get("abr") or f.get("tbr") or 0, default=None)
+    if not can_mux:
+        # Without FFmpeg only ready-made files with sound can be offered.
+        video_only, best_audio = ([] if progressive else video_only), None
 
     candidates = progressive + (video_only if best_audio else [])
     if not candidates:
@@ -163,7 +200,8 @@ def build_result(info: dict, platform: str) -> dict:
     base = f"saveloop-{platform}-{_slug(str(entry.get('id') or ''))}"
     out_formats = []
 
-    picks = _pick_video_sources(formats)
+    ffmpeg = has_ffmpeg()
+    picks = _pick_video_sources(formats, can_mux=ffmpeg)
     for p in picks:
         f, audio = p["fmt"], p["audio"]
         quality = f"{p['side']}p" if p["side"] else "Best"
@@ -183,7 +221,7 @@ def build_result(info: dict, platform: str) -> dict:
             "url": f"/api/download/{tokens.sign(payload)}",
         })
 
-    if picks:
+    if picks and ffmpeg:
         smallest = min(picks, key=lambda p: p["side"] or 10_000)["fmt"]
         payload = {"m": "gif", "u": [smallest["url"]], "h": _headers(smallest) or _headers(entry),
                    "n": f"{base}.gif", "t": "image/gif"}
@@ -194,14 +232,24 @@ def build_result(info: dict, platform: str) -> dict:
     preview_url = None
     if thumb:
         h = _headers(entry)
-        for ext, mime in (("webp", "image/webp"), ("png", "image/png")):
-            payload = {"m": ext, "u": [thumb], "h": h, "n": f"{base}.{ext}", "t": mime}
-            out_formats.append({"id": ext, "type": "image", "ext": ext, "label": f"{ext.upper()} image",
+        if ffmpeg:
+            for ext, mime in (("webp", "image/webp"), ("png", "image/png")):
+                payload = {"m": ext, "u": [thumb], "h": h, "n": f"{base}.{ext}", "t": mime}
+                out_formats.append({"id": ext, "type": "image", "ext": ext, "label": f"{ext.upper()} image",
+                                    "url": f"/api/download/{tokens.sign(payload)}"})
+        else:
+            payload = {"m": "direct", "u": [thumb], "h": h, "n": f"{base}.jpg", "t": "image/jpeg"}
+            out_formats.append({"id": "jpg", "type": "image", "ext": "jpg", "label": "JPG image",
                                 "url": f"/api/download/{tokens.sign(payload)}"})
         preview_url = f"/api/download/{tokens.sign({'m': 'image', 'u': [thumb], 'h': h, 'n': 'preview', 't': ''})}?inline=1"
 
     if not out_formats:
         raise errors.not_found("This post has no video or image we can save.")
+
+    is_gif = bool(picks) and all(_is_x_gif(p["fmt"]) for p in picks) and ffmpeg
+    if is_gif:
+        # Lead with the GIF for GIF posts; MP4 stays available.
+        out_formats.sort(key=lambda f: f["type"] != "gif")
 
     creator = entry.get("uploader_id") or entry.get("channel") or entry.get("uploader") or ""
     if creator and not creator.startswith("@") and " " not in creator:
@@ -212,7 +260,8 @@ def build_result(info: dict, platform: str) -> dict:
 
     return {
         "platform": platform,
-        "kind": KIND_LABELS.get(platform, "Post") if picks else "Image",
+        "kind": "GIF" if is_gif else (KIND_LABELS.get(platform, "Post") if picks else "Image"),
+        "primary": "gif" if is_gif else None,
         "creator": creator or None,
         "title": (entry.get("title") or "")[:200] or None,
         "duration": entry.get("duration"),

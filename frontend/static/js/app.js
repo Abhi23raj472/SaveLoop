@@ -26,6 +26,7 @@
     unsupported_platform: ["That site isn't supported yet", 'SaveLoop works with public posts from Instagram, Facebook and X.'],
     private: ['This post is private', 'SaveLoop can only save media from public posts. Try a different link.'],
     not_found: ['Post not found', 'It may have been deleted, or the link is incomplete.'],
+    no_video: ['No video in this post', 'This post only has photos. SaveLoop can save videos and GIFs for now.'],
     rate_limited: ['Too many requests', 'Please wait a moment and try again.'],
     extraction_failed: ["We couldn't get this one", 'Something went wrong while fetching the media. Please try again.'],
     network: ["Can't reach SaveLoop", 'Check your connection and try again.'],
@@ -185,8 +186,10 @@
   function renderResult(data) {
     current = data;
     const formats = Array.isArray(data.formats) ? data.formats : [];
-    const videos = formats.filter((f) => f.type === 'video');
-    const extras = formats.filter((f) => f.type !== 'video');
+    // GIF posts lead with the GIF; their MP4 moves to the "Also as" row.
+    const gifFirst = data.primary === 'gif';
+    const videos = gifFirst ? [] : formats.filter((f) => f.type === 'video');
+    const extras = formats.filter((f) => (gifFirst ? f.type !== 'gif' : f.type !== 'video'));
 
     const thumb = $('result-thumb');
     if (data.thumbnail) {
@@ -232,7 +235,8 @@
       a.className = 'chip-btn inline-flex items-center';
       a.href = f.url;
       a.setAttribute('download', '');
-      a.textContent = (f.ext || f.label || '').toUpperCase();
+      a.textContent = f.type === 'video' && f.quality && f.quality !== 'Best'
+        ? `MP4 ${f.quality}` : (f.ext || f.label || '').toUpperCase();
       a.setAttribute('aria-label', `Download as ${f.label || f.ext}`);
       extraWrap.appendChild(a);
     });
@@ -243,7 +247,9 @@
   function renderPrimary() {
     const formats = current?.formats || [];
     const videos = formats.filter((f) => f.type === 'video');
-    const chosen = videos.find((f) => f.id === selectedQuality) || formats[0];
+    const chosen = current?.primary === 'gif'
+      ? formats.find((f) => f.type === 'gif')
+      : videos.find((f) => f.id === selectedQuality) || formats[0];
 
     $('quality-options').querySelectorAll('button').forEach((btn) => {
       const on = btn.dataset.id === selectedQuality;

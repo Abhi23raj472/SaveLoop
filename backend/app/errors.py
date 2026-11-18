@@ -31,3 +31,7 @@ def rate_limited(msg=None):
 
 def extraction_failed(msg=None):
     return ApiError("extraction_failed", 502, msg)
+
+
+def no_video(msg=None):
+    return ApiError("no_video", 422, msg)

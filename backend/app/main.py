@@ -1,5 +1,6 @@
 """SaveLoop API and static frontend."""
 import asyncio
+import logging
 import os
 
 from fastapi import FastAPI, Request
@@ -12,6 +13,11 @@ from pydantic import BaseModel
 from . import config, downloads, errors, extractor, tokens
 from .ratelimit import RateLimiter
 from .security import validate_post_url
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s: %(message)s")
+# httpx logs full request URLs at INFO; keep those out of the logs.
+for _noisy in ("httpx", "httpcore"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 app = FastAPI(title="SaveLoop", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -69,7 +75,13 @@ async def extract(body: ExtractRequest, request: Request):
         info = await asyncio.wait_for(run_in_threadpool(extractor.fetch_info, url), config.EXTRACT_TIMEOUT)
     except asyncio.TimeoutError:
         raise errors.extraction_failed("This is taking too long. Please try again.") from None
-    return extractor.build_result(info, platform)
+    try:
+        return extractor.build_result(info, platform)
+    except errors.ApiError:
+        raise
+    except Exception:  # noqa: BLE001
+        logging.getLogger("saveloop").exception("could not build result")
+        raise errors.extraction_failed() from None
 
 
 @app.get("/api/download/{token}")
@@ -84,6 +96,14 @@ async def download(token: str, request: Request, inline: int = 0):
     if payload.get("m") != "image" and not download_limiter.allow(client_ip(request)):
         raise errors.rate_limited()
     return await downloads.stream(payload, inline=bool(inline) or payload.get("m") == "image")
+
+
+@app.on_event("startup")
+async def check_ffmpeg():
+    if not extractor.has_ffmpeg():
+        logging.getLogger("saveloop").warning(
+            "FFmpeg not found on PATH: GIF, PNG/WEBP and some 1080p downloads are turned off. "
+            "Install FFmpeg and restart to enable them.")
 
 
 @app.get("/healthz")
