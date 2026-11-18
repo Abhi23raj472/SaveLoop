@@ -18,4 +18,5 @@ WORKDIR /srv/backend
 EXPOSE 8000
 
 # --no-access-log: no IPs or URLs are written to logs.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers"]
+# Hosts like Render pass the port in $PORT; 8000 is the local default.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --no-access-log"]
