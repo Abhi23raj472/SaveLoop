@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaveLoop · Save public videos, GIFs and stickers</title>
+  <meta name="description" content="Download public videos, GIFs and stickers from Instagram, Facebook and X in seconds. No ads, no sign-up, no watermark.">
+  <meta name="theme-color" content="#FAF6F0">
+  <link rel="icon" type="image/svg+xml" href="static/img/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/css/styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="border-b border-line">
+    <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-7">
+      <a href="#" class="flex items-center gap-2.5 text-ink" aria-label="SaveLoop home">
+        <span class="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-forest shadow-[inset_0_-2px_0_rgba(0,0,0,0.18)]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+        </span>
+        <span class="text-[19px] font-extrabold tracking-[-0.03em]">SaveLoop</span>
+      </a>
+      <nav aria-label="Main" class="flex flex-wrap items-center gap-5 sm:gap-7">
+        <a href="#how" class="hidden text-sm font-semibold text-[#4B4A5E] hover:text-ink sm:inline">How it works</a>
+        <a href="#formats" class="hidden text-sm font-semibold text-[#4B4A5E] hover:text-ink sm:inline">Formats</a>
+        <a href="#faq" class="hidden text-sm font-semibold text-[#4B4A5E] hover:text-ink sm:inline">FAQ</a>
+        <a href="#top" data-focus-input class="inline-flex h-10 items-center rounded-full bg-ink px-[18px] text-sm font-bold text-ricotta transition hover:bg-forest-dark">Paste a link</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section id="top" class="mx-auto flex max-w-[980px] flex-col items-center gap-[22px] px-5 pb-8 pt-16 text-center sm:px-7 sm:pt-24">
+      <span class="inline-flex items-center gap-2.5 rounded-full border border-line bg-white py-1.5 pl-2 pr-3.5 text-[13px] font-semibold text-[#4B4A5E] shadow-sm">
+        <span class="rounded-full bg-tomato-soft px-2 py-0.5 text-xs font-bold text-tomato-ink">New</span>
+        Instagram, Facebook and X in one place
+      </span>
+
+      <h1 class="text-[clamp(2.75rem,6.4vw,5.5rem)] font-extrabold leading-none tracking-tightest">
+        Save the posts<br>worth <span class="text-tomato">looping.</span>
+      </h1>
+
+      <p class="max-w-[560px] text-[17px] leading-relaxed text-muted sm:text-[19px]">
+        Download public videos, GIFs and stickers in seconds. No ads, no sign-up, no watermark.
+      </p>
+
+      <!-- URL bar -->
+      <div class="mt-4 w-full max-w-[780px] rounded-[30px] border border-forest/10 bg-forest/[0.07] p-1.5">
+        <form id="extract-form" class="flex flex-wrap gap-2 rounded-3xl border border-line-strong bg-white p-2 shadow-bar" novalidate>
+          <label for="post-url" class="sr-only">Link to a public post</label>
+          <div class="flex min-w-0 flex-[1_1_260px] items-center gap-3 px-3.5">
+            <svg class="shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C8899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <input id="post-url" name="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+              placeholder="Paste a link to a public post"
+              class="h-14 min-w-0 flex-1 bg-transparent text-[17px] font-medium text-ink placeholder:text-[#8C8899] focus:outline-none focus-visible:ring-0">
+          </div>
+          <button id="paste-toggle" type="button" class="inline-flex h-14 flex-none items-center gap-2 rounded-[18px] bg-sand px-[18px] text-[15px] font-bold text-ink transition hover:bg-[#ECE5D9]">
+            <svg data-icon="paste" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            <svg data-icon="clear" class="hidden" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            <span data-label>Paste</span>
+          </button>
+          <button id="submit-btn" type="submit" class="inline-flex h-14 flex-[1_0_auto] items-center justify-center gap-2.5 rounded-[18px] bg-forest px-[30px] text-base font-bold text-white shadow-cta transition hover:bg-forest-dark disabled:cursor-wait disabled:opacity-80">
+            <span data-label>Download</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <!-- Platform badges -->
+      <div class="flex flex-wrap items-center justify-center gap-1.5" aria-live="polite">
+        <span id="badge-label" class="mr-1.5 text-[13px] font-semibold text-muted-soft">Works with</span>
+        <span data-platform="instagram" class="platform-badge inline-flex items-center gap-[7px] rounded-full border border-line-strong px-3 py-1.5 text-[13px] font-bold text-[#4B4A5E] transition"><span class="h-1.5 w-1.5 rounded-full bg-[#B3A994]"></span>Instagram</span>
+        <span data-platform="facebook" class="platform-badge inline-flex items-center gap-[7px] rounded-full border border-line-strong px-3 py-1.5 text-[13px] font-bold text-[#4B4A5E] transition"><span class="h-1.5 w-1.5 rounded-full bg-[#B3A994]"></span>Facebook</span>
+        <span data-platform="x" class="platform-badge inline-flex items-center gap-[7px] rounded-full border border-line-strong px-3 py-1.5 text-[13px] font-bold text-[#4B4A5E] transition"><span class="h-1.5 w-1.5 rounded-full bg-[#B3A994]"></span>X</span>
+      </div>
+
+      <!-- State area -->
+      <div id="state-area" class="mt-[18px] w-full max-w-[780px] text-left" aria-live="polite">
+
+        <!-- Loading skeleton -->
+        <div id="state-loading" class="hidden" role="status" aria-label="Finding your media">
+          <div class="flex flex-wrap gap-7 rounded-[26px] border border-line-strong bg-white p-3.5">
+            <div class="skeleton h-[340px] max-w-[280px] flex-[1_1_220px] rounded-[18px]"></div>
+            <div class="flex flex-[999_1_280px] flex-col gap-3.5 py-3.5 pr-2.5">
+              <div class="flex items-center gap-3"><div class="skeleton h-10 w-10 rounded-full"></div><div class="flex flex-col gap-2"><div class="skeleton h-3.5 w-36"></div><div class="skeleton h-3 w-24"></div></div></div>
+              <div class="my-1.5 h-px bg-line-faint"></div>
+              <div class="skeleton h-3 w-16"></div>
+              <div class="skeleton h-12 w-full rounded-2xl"></div>
+              <div class="skeleton h-[54px] w-full rounded-2xl"></div>
+              <div class="flex gap-2"><div class="skeleton h-10 w-[92px] rounded-xl"></div><div class="skeleton h-10 w-[92px] rounded-xl"></div><div class="skeleton h-10 w-[92px] rounded-xl"></div></div>
+            </div>
+          </div>
+          <span class="sr-only">Finding your media…</span>
+        </div>
+
+        <!-- Result card -->
+        <div id="state-result" class="hidden">
+          <div class="flex flex-wrap gap-7 rounded-[26px] border border-line-strong bg-white p-3.5 shadow-card">
+            <div class="relative flex h-[340px] flex-[1_1_220px] items-center justify-center overflow-hidden rounded-[18px] bg-thumb sm:max-w-[280px]">
+              <img id="result-thumb" alt="" class="absolute inset-0 hidden h-full w-full object-cover">
+              <span class="absolute left-3 top-3 rounded-full bg-ricotta/15 px-2.5 py-1 text-[11px] font-bold tracking-[0.04em] text-ricotta backdrop-blur">PREVIEW</span>
+              <span class="relative flex h-16 w-16 items-center justify-center rounded-full border border-ricotta/30 bg-ricotta/15 backdrop-blur">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#FAF6F0" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              </span>
+              <span id="result-duration-chip" class="absolute bottom-3 right-3 rounded-lg bg-black/50 px-2.5 py-1 font-mono text-xs font-bold text-white"></span>
+            </div>
+
+            <div class="flex min-w-0 flex-[999_1_280px] flex-col gap-4 py-3 pr-2">
+              <div class="flex items-center gap-3">
+                <span id="result-avatar" class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-forest-soft text-sm font-extrabold text-forest"></span>
+                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span id="result-creator" class="truncate text-base font-extrabold tracking-[-0.01em]"></span>
+                  <span id="result-meta" class="truncate text-[13px] text-muted-soft"></span>
+                </div>
+                <span class="inline-flex flex-none items-center gap-1.5 rounded-full bg-[#EAF6EE] px-2.5 py-1 text-xs font-bold text-[#1D6B3A]"><span class="h-1.5 w-1.5 rounded-full bg-[#2E8B57]"></span>Ready</span>
+              </div>
+
+              <div class="h-px bg-line-faint"></div>
+
+              <div id="quality-group" class="flex flex-col gap-2.5">
+                <span class="text-xs font-bold uppercase tracking-[0.08em] text-muted-soft">Quality</span>
+                <div id="quality-options" role="radiogroup" aria-label="Video quality" class="flex gap-1 rounded-2xl bg-sand p-1"></div>
+              </div>
+
+              <a id="primary-download" href="#" class="inline-flex h-[54px] items-center justify-center gap-2.5 rounded-2xl bg-forest text-base font-bold text-white shadow-cta transition hover:bg-forest-dark">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+                <span data-label>Download</span>
+              </a>
+
+              <div id="extra-formats" class="flex flex-wrap items-center gap-2">
+                <span class="mr-1 text-[13px] font-semibold text-muted-soft">Also as</span>
+              </div>
+
+              <span class="inline-flex items-center gap-2 text-xs text-muted-soft">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                Processed on the fly. Nothing is stored.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error banner -->
+        <div id="state-error" class="hidden" role="alert">
+          <div class="flex items-start gap-3.5 rounded-[20px] border border-[#F0D4B2] bg-white px-5 py-[18px] shadow-[0_12px_32px_-16px_rgba(107,58,0,0.25)]">
+            <span class="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-[#FDF1E3] text-[#8A4B00]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+            </span>
+            <div class="flex flex-1 flex-col gap-1 pt-0.5">
+              <span id="error-title" class="text-[15px] font-extrabold text-ink"></span>
+              <span id="error-body" class="text-sm leading-normal text-muted"></span>
+            </div>
+            <button id="error-dismiss" type="button" aria-label="Dismiss" class="-mr-2 -mt-1.5 flex h-11 w-11 flex-none items-center justify-center rounded-xl text-muted-soft transition hover:bg-sand hover:text-ink">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Promises strip -->
+    <section aria-label="Why SaveLoop" class="mx-auto max-w-[1200px] px-5 pb-6 pt-10 sm:px-7">
+      <div class="flex flex-wrap border-y border-line">
+        <div class="flex flex-[1_1_240px] flex-col gap-1.5 px-6 py-7">
+          <span class="text-[28px] font-extrabold tracking-[-0.03em]">Under 10 seconds</span>
+          <span class="text-sm text-muted-soft">From paste to saved file</span>
+        </div>
+        <div class="flex flex-[1_1_240px] flex-col gap-1.5 border-line px-6 py-7 sm:border-l">
+          <span class="text-[28px] font-extrabold tracking-[-0.03em]">Up to 1080p</span>
+          <span class="text-sm text-muted-soft">Clean MP4, no watermark added</span>
+        </div>
+        <div class="flex flex-[1_1_240px] flex-col gap-1.5 border-line px-6 py-7 sm:border-l">
+          <span class="text-[28px] font-extrabold tracking-[-0.03em]">Nothing stored</span>
+          <span class="text-sm text-muted-soft">No logs of links or IP addresses</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="mx-auto flex max-w-[1200px] scroll-mt-6 flex-col gap-12 px-5 pb-10 pt-20 sm:px-7 sm:pt-24">
+      <div class="flex flex-wrap items-end justify-between gap-5">
+        <div class="flex max-w-[620px] flex-col gap-3.5">
+          <span class="eyebrow">How it works</span>
+          <h2 class="h2">Three steps. About ten seconds.</h2>
+        </div>
+        <p class="max-w-[360px] text-base leading-relaxed text-muted">No app to install and nothing to sign up for. It works the same on your phone and your laptop.</p>
+      </div>
+      <ol class="flex flex-wrap gap-8">
+        <li class="flex flex-[1_1_260px] flex-col gap-2.5 border-t-2 border-tomato pt-[22px]">
+          <span class="font-mono text-sm text-tomato-ink">01</span>
+          <span class="text-xl font-extrabold tracking-[-0.02em]">Copy the link</span>
+          <span class="text-[15px] leading-relaxed text-muted">Tap Share on any public post, then Copy link.</span>
+        </li>
+        <li class="flex flex-[1_1_260px] flex-col gap-2.5 border-t-2 border-tomato pt-[22px]">
+          <span class="font-mono text-sm text-tomato-ink">02</span>
+          <span class="text-xl font-extrabold tracking-[-0.02em]">Paste it here</span>
+          <span class="text-[15px] leading-relaxed text-muted">SaveLoop spots the platform and finds every format available.</span>
+        </li>
+        <li class="flex flex-[1_1_260px] flex-col gap-2.5 border-t-2 border-tomato pt-[22px]">
+          <span class="font-mono text-sm text-tomato-ink">03</span>
+          <span class="text-xl font-extrabold tracking-[-0.02em]">Download</span>
+          <span class="text-[15px] leading-relaxed text-muted">Pick a quality or format. The file saves straight to your device.</span>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Formats -->
+    <section id="formats" class="mt-16 scroll-mt-6 px-3 sm:mt-[72px] sm:px-4">
+      <div class="mx-auto flex max-w-[1240px] flex-col gap-12 rounded-[32px] bg-forest-dark px-6 py-16 text-ricotta sm:px-10 sm:py-20">
+        <div class="flex max-w-[640px] flex-col gap-3.5">
+          <span class="text-[13px] font-bold uppercase tracking-[0.1em] text-tomato-light">Formats</span>
+          <h2 class="h2">Every format, done properly.</h2>
+        </div>
+        <div class="flex flex-wrap gap-4">
+          <div class="flex flex-[1_1_260px] flex-col gap-3.5 rounded-[22px] border border-ricotta/[0.12] bg-ricotta/[0.03] p-7">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF8A73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="M17 10l5-3v10l-5-3"/></svg>
+            <span class="text-xl font-extrabold tracking-[-0.02em]">Video</span>
+            <span class="text-[15px] leading-relaxed text-[#C9D3CC]">1080p, 720p or 480p, with no watermark added.</span>
+            <span class="mt-1.5 self-start rounded-lg bg-ricotta/[0.08] px-2.5 py-1 font-mono text-[13px]">.mp4</span>
+          </div>
+          <div class="flex flex-[1_1_260px] flex-col gap-3.5 rounded-[22px] border border-ricotta/[0.12] bg-ricotta/[0.03] p-7">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF8A73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+            <span class="text-xl font-extrabold tracking-[-0.02em]">GIF loops</span>
+            <span class="text-[15px] leading-relaxed text-[#C9D3CC]">Short clips turned into light, looping GIFs on the fly.</span>
+            <span class="mt-1.5 self-start rounded-lg bg-ricotta/[0.08] px-2.5 py-1 font-mono text-[13px]">.gif</span>
+          </div>
+          <div class="flex flex-[1_1_260px] flex-col gap-3.5 rounded-[22px] border border-ricotta/[0.12] bg-ricotta/[0.03] p-7">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF8A73" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5z"/><path d="M15 3v6h6"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg>
+            <span class="text-xl font-extrabold tracking-[-0.02em]">Stickers and thumbnails</span>
+            <span class="text-[15px] leading-relaxed text-[#C9D3CC]">High-resolution images, ready to share or archive.</span>
+            <span class="mt-1.5 self-start rounded-lg bg-ricotta/[0.08] px-2.5 py-1 font-mono text-[13px]">.webp · .png</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="mx-auto flex max-w-[1200px] scroll-mt-6 flex-wrap gap-12 px-5 pb-24 pt-24 sm:px-7 sm:pt-28">
+      <div class="flex flex-[1_1_300px] flex-col gap-3.5">
+        <span class="eyebrow">FAQ</span>
+        <h2 class="h2">Good questions.</h2>
+      </div>
+      <div class="flex min-w-0 flex-[999_1_480px] flex-col border-t border-line-strong">
+        <details class="group border-b border-line-strong px-1 py-[22px]">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 text-[17px] font-bold">Do I need an account?<svg class="faq-icon flex-none text-tomato-ink transition-transform" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+          <p class="mt-3 text-[15px] leading-relaxed text-muted">No. Paste a link and download. There is nothing to sign up for.</p>
+        </details>
+        <details class="group border-b border-line-strong px-1 py-[22px]">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 text-[17px] font-bold">Do you keep my links or files?<svg class="faq-icon flex-none text-tomato-ink transition-transform" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+          <p class="mt-3 text-[15px] leading-relaxed text-muted">No. SaveLoop doesn't store media and doesn't log links or IP addresses.</p>
+        </details>
+        <details class="group border-b border-line-strong px-1 py-[22px]">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 text-[17px] font-bold">Can I save posts from private accounts?<svg class="faq-icon flex-none text-tomato-ink transition-transform" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+          <p class="mt-3 text-[15px] leading-relaxed text-muted">No. SaveLoop only works with public posts.</p>
+        </details>
+        <details class="group border-b border-line-strong px-1 py-[22px]">
+          <summary class="flex cursor-pointer items-center justify-between gap-4 text-[17px] font-bold">Does it work on my phone?<svg class="faq-icon flex-none text-tomato-ink transition-transform" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+          <p class="mt-3 text-[15px] leading-relaxed text-muted">Yes. It runs in any modern mobile browser, with nothing to install.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-line">
+    <div class="mx-auto flex max-w-[1200px] flex-wrap items-start justify-between gap-5 px-5 pb-10 pt-8 sm:px-7">
+      <div class="flex items-center gap-2.5">
+        <span class="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-forest">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+        </span>
+        <span class="text-[15px] font-extrabold tracking-[-0.02em]">SaveLoop</span>
+      </div>
+      <p class="max-w-[620px] text-[13px] leading-[1.65] text-muted-soft">For saving public media for personal archiving only. Please respect creators' rights and each platform's terms. SaveLoop is not affiliated with Instagram, Facebook or X.</p>
+    </div>
+  </footer>
+
+  <script src="static/js/app.js" defer></script>
+</body>
+</html>
