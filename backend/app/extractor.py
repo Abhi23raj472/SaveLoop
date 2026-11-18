@@ -10,6 +10,9 @@ import yt_dlp
 from . import config, errors, tokens
 from .security import is_allowed_media_url
 
+log = logging.getLogger("saveloop")
+_URL_RE = re.compile(r"https?://\S+")
+
 QUALITY_TARGETS = (1080, 720, 480)
 SAFE_HEADERS = ("User-Agent", "Referer", "Origin")
 KIND_LABELS = {"instagram": "Post", "facebook": "Video", "x": "Post"}
@@ -48,8 +51,12 @@ def fetch_info(url: str) -> dict:
         with yt_dlp.YoutubeDL(_ydl_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
     except yt_dlp.utils.DownloadError as exc:
-        raise map_ytdlp_error(str(exc)) from None
-    except Exception:  # noqa: BLE001 - never leak internals to the client
+        err = map_ytdlp_error(str(exc))
+        # Logged so the operator can see why; URLs are scrubbed.
+        log.warning("yt-dlp failed (%s): %s", err.code, _URL_RE.sub("<url>", str(exc))[:400])
+        raise err from None
+    except Exception as exc:  # noqa: BLE001 - never leak internals to the client
+        log.exception("yt-dlp crashed: %s", type(exc).__name__)
         raise errors.extraction_failed() from None
     if not info:
         raise errors.not_found()

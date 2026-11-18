@@ -72,7 +72,13 @@ async def extract(body: ExtractRequest, request: Request):
         info = await asyncio.wait_for(run_in_threadpool(extractor.fetch_info, url), config.EXTRACT_TIMEOUT)
     except asyncio.TimeoutError:
         raise errors.extraction_failed("This is taking too long. Please try again.") from None
-    return extractor.build_result(info, platform)
+    try:
+        return extractor.build_result(info, platform)
+    except errors.ApiError:
+        raise
+    except Exception:  # noqa: BLE001
+        logging.getLogger("saveloop").exception("could not build result")
+        raise errors.extraction_failed() from None
 
 
 @app.get("/api/download/{token}")
