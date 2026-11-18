@@ -89,3 +89,31 @@ def test_without_ffmpeg_only_ready_made_files(monkeypatch):
 def test_photo_only_post_maps_to_no_video():
     err = extractor.map_ytdlp_error("ERROR: [twitter] 123: Media #1 is not a video")
     assert err.code == "no_video" and err.status == 422
+
+
+X_GIF_INFO = {
+    "id": "2122936075857666221",
+    "uploader_id": "gavin",
+    "thumbnails": [{"url": "https://pbs.twimg.com/tweet_video_thumb/abc.jpg", "width": 498, "height": 280}],
+    "formats": [
+        {"format_id": "http", "url": "https://video.twimg.com/tweet_video/abc.mp4", "protocol": "https", "ext": "mp4"},
+    ],
+}
+
+
+def test_x_gif_post_leads_with_gif(monkeypatch):
+    monkeypatch.setattr(extractor, "has_ffmpeg", lambda: True)
+    res = extractor.build_result(X_GIF_INFO, "x")
+    assert res["kind"] == "GIF" and res["primary"] == "gif"
+    assert res["formats"][0]["type"] == "gif"
+    assert any(f["type"] == "video" for f in res["formats"])
+    assert _payload(res["formats"][0])["u"] == ["https://video.twimg.com/tweet_video/abc.mp4"]
+
+
+def test_unknown_codec_x_video_is_a_video(monkeypatch):
+    monkeypatch.setattr(extractor, "has_ffmpeg", lambda: True)
+    info = {"id": "1", "formats": [{"format_id": "http-2176", "protocol": "https", "ext": "mp4",
+            "url": "https://video.twimg.com/ext_tw_video/1/pu/vid/720x1280/a.mp4", "width": 720, "height": 1280}]}
+    res = extractor.build_result(info, "x")
+    assert res["kind"] == "Post" and res["formats"][0]["quality"] == "720p"
+    assert _payload(res["formats"][0])["m"] == "direct"

@@ -114,12 +114,32 @@ def _is_direct(f: dict) -> bool:
     )
 
 
+VIDEO_EXTS = ("mp4", "webm", "mov", "m4v")
+
+
+def _is_x_gif(f: dict) -> bool:
+    # X serves animated GIFs as silent MP4s under /tweet_video/.
+    return "/tweet_video/" in (f.get("url") or "")
+
+
 def _has_video(f: dict) -> bool:
-    return f.get("vcodec") not in (None, "none") or (f.get("vcodec") is None and bool(f.get("height")))
+    vcodec = f.get("vcodec")
+    if vcodec == "none":
+        return False
+    if vcodec:
+        return True
+    # Codec unknown (common for X): decide from the container or size.
+    return f.get("ext") in VIDEO_EXTS or bool(f.get("height"))
 
 
 def _has_audio(f: dict) -> bool:
-    return f.get("acodec") not in (None, "none")
+    acodec = f.get("acodec")
+    if acodec == "none":
+        return False
+    if acodec:
+        return True
+    # Codec unknown: X GIFs are silent; other MP4s are usually complete files.
+    return not _is_x_gif(f)
 
 
 def _slug(value: str, limit: int = 40) -> str:
@@ -226,6 +246,11 @@ def build_result(info: dict, platform: str) -> dict:
     if not out_formats:
         raise errors.not_found("This post has no video or image we can save.")
 
+    is_gif = bool(picks) and all(_is_x_gif(p["fmt"]) for p in picks) and ffmpeg
+    if is_gif:
+        # Lead with the GIF for GIF posts; MP4 stays available.
+        out_formats.sort(key=lambda f: f["type"] != "gif")
+
     creator = entry.get("uploader_id") or entry.get("channel") or entry.get("uploader") or ""
     if creator and not creator.startswith("@") and " " not in creator:
         creator = "@" + creator
@@ -235,7 +260,8 @@ def build_result(info: dict, platform: str) -> dict:
 
     return {
         "platform": platform,
-        "kind": KIND_LABELS.get(platform, "Post") if picks else "Image",
+        "kind": "GIF" if is_gif else (KIND_LABELS.get(platform, "Post") if picks else "Image"),
+        "primary": "gif" if is_gif else None,
         "creator": creator or None,
         "title": (entry.get("title") or "")[:200] or None,
         "duration": entry.get("duration"),

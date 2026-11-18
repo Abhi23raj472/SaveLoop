@@ -186,8 +186,10 @@
   function renderResult(data) {
     current = data;
     const formats = Array.isArray(data.formats) ? data.formats : [];
-    const videos = formats.filter((f) => f.type === 'video');
-    const extras = formats.filter((f) => f.type !== 'video');
+    // GIF posts lead with the GIF; their MP4 moves to the "Also as" row.
+    const gifFirst = data.primary === 'gif';
+    const videos = gifFirst ? [] : formats.filter((f) => f.type === 'video');
+    const extras = formats.filter((f) => (gifFirst ? f.type !== 'gif' : f.type !== 'video'));
 
     const thumb = $('result-thumb');
     if (data.thumbnail) {
@@ -233,7 +235,8 @@
       a.className = 'chip-btn inline-flex items-center';
       a.href = f.url;
       a.setAttribute('download', '');
-      a.textContent = (f.ext || f.label || '').toUpperCase();
+      a.textContent = f.type === 'video' && f.quality && f.quality !== 'Best'
+        ? `MP4 ${f.quality}` : (f.ext || f.label || '').toUpperCase();
       a.setAttribute('aria-label', `Download as ${f.label || f.ext}`);
       extraWrap.appendChild(a);
     });
@@ -244,7 +247,9 @@
   function renderPrimary() {
     const formats = current?.formats || [];
     const videos = formats.filter((f) => f.type === 'video');
-    const chosen = videos.find((f) => f.id === selectedQuality) || formats[0];
+    const chosen = current?.primary === 'gif'
+      ? formats.find((f) => f.type === 'gif')
+      : videos.find((f) => f.id === selectedQuality) || formats[0];
 
     $('quality-options').querySelectorAll('button').forEach((btn) => {
       const on = btn.dataset.id === selectedQuality;
