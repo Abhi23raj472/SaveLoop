@@ -1,0 +1,16 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: saveloop
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      # Signs download links. Render generates a random value once.
+      - key: SAVELOOP_SECRET_KEY
+        generateValue: true
+      # Render sits behind a proxy, so read the visitor IP from X-Forwarded-For.
+      - key: SAVELOOP_TRUST_PROXY
+        value: "1"
