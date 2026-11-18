@@ -50,3 +50,13 @@ def test_rejects_bad_links(url, code):
 ])
 def test_media_host_allowlist(url, ok):
     assert is_allowed_media_url(url) is ok
+
+
+@pytest.mark.parametrize("url", [
+    "https://x.com/user/status/2122936075857666221/photo/1",
+    "https://x.com/user/status/2122936075857666221/video/1/",
+    "https://twitter.com/user/status/2122936075857666221",
+])
+def test_x_media_suffix_is_dropped(url):
+    normalized, _ = validate_post_url(url)
+    assert normalized.rstrip("/").endswith("/status/2122936075857666221")

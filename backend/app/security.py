@@ -4,6 +4,7 @@ Only public post links on known platforms are accepted, and the server only
 ever fetches media from those platforms' CDNs.
 """
 import ipaddress
+import re
 from urllib.parse import urlsplit, urlunsplit
 
 from . import errors
@@ -18,6 +19,11 @@ PLATFORM_HOSTS = {
 }
 
 # Hosts the server may fetch media bytes from (subdomains included).
+# X links copied from a photo or GIF viewer end in /photo/N or /video/N.
+# yt-dlp treats that as "only media N, and it must be a video", which
+# rejects GIFs. Dropping the suffix lets it read every video and GIF.
+_X_MEDIA_SUFFIX = re.compile(r"/(?:photo|video)/\d+/?$")
+
 MEDIA_HOSTS = (
     "cdninstagram.com",
     "instagram.com",
@@ -71,7 +77,10 @@ def validate_post_url(raw: str) -> tuple[str, str]:
     host = _clean_host(parts)
     for platform, suffixes in PLATFORM_HOSTS.items():
         if _host_matches(host, suffixes):
-            normalized = urlunsplit(("https", host, parts.path or "/", parts.query, ""))
+            path = parts.path or "/"
+            if platform == "x":
+                path = _X_MEDIA_SUFFIX.sub("", path)
+            normalized = urlunsplit(("https", host, path, parts.query, ""))
             return normalized, platform
     raise errors.unsupported_platform()
 
