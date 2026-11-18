@@ -1,6 +1,12 @@
 """Stream files to the client. Nothing is written to disk."""
 import asyncio
+import logging
+import re
+import subprocess
+import threading
 from urllib.parse import urljoin
+
+from fastapi.concurrency import run_in_threadpool
 
 import httpx
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -11,7 +17,15 @@ from .security import is_allowed_media_url
 CHUNK = 64 * 1024
 MAX_REDIRECTS = 3
 # Caps concurrent ffmpeg jobs so conversions can't exhaust the CPU.
-_ffmpeg_slots = asyncio.Semaphore(4)
+_ffmpeg_slots = threading.BoundedSemaphore(4)
+
+# Logs why a download failed, never the URL or the client's IP.
+log = logging.getLogger("saveloop")
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def _scrub(text: str) -> str:
+    return _URL_RE.sub("<url>", text)[-500:]
 
 
 def _error(status: int, code: str, message: str) -> JSONResponse:
@@ -55,11 +69,13 @@ async def _proxy(payload: dict, inline: bool):
         else:
             await client.aclose()
             return _error(502, "extraction_failed", "Too many redirects.")
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
         await client.aclose()
+        log.warning("media fetch failed: %s", type(exc).__name__)
         return _error(502, "extraction_failed", "Couldn't fetch the media. Please try again.")
 
     if resp.status_code != 200:
+        log.warning("media host returned HTTP %s", resp.status_code)
         await resp.aclose()
         await client.aclose()
         code = "link_expired" if resp.status_code in (403, 410) else "extraction_failed"
@@ -116,40 +132,62 @@ def build_ffmpeg_cmd(payload: dict) -> list[str]:
 
 
 async def _ffmpeg(payload: dict, inline: bool):
-    await _ffmpeg_slots.acquire()
+    # subprocess.Popen in a thread works on every event loop, including the
+    # Windows selector loop where asyncio subprocesses are not supported.
+    if not _ffmpeg_slots.acquire(blocking=False):
+        return _error(503, "rate_limited", "The server is busy converting files. Please try again shortly.")
     try:
-        proc = await asyncio.create_subprocess_exec(
-            *build_ffmpeg_cmd(payload),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL,
-            stdin=asyncio.subprocess.DEVNULL,
+        proc = subprocess.Popen(
+            build_ffmpeg_cmd(payload),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
         )
-    except Exception:  # noqa: BLE001
+    except FileNotFoundError:
         _ffmpeg_slots.release()
+        log.error("ffmpeg is not installed or not on PATH")
+        return _error(500, "extraction_failed", "Conversion isn't available: FFmpeg is not installed on the server.")
+    except Exception as exc:  # noqa: BLE001
+        _ffmpeg_slots.release()
+        log.error("could not start ffmpeg: %s", type(exc).__name__)
         return _error(500, "extraction_failed", "Conversion isn't available right now.")
 
-    async def cleanup():
-        if proc.returncode is None:
-            proc.kill()
-        await proc.wait()
-        _ffmpeg_slots.release()
+    stderr_tail = []
 
-    # Wait for the first bytes so a failed conversion returns a clean error.
+    def drain_stderr():
+        for line in proc.stderr:
+            stderr_tail.append(line.decode(errors="replace"))
+            del stderr_tail[:-20]
+
+    threading.Thread(target=drain_stderr, daemon=True).start()
+
+    released = False
+
+    def cleanup():
+        nonlocal released
+        if proc.poll() is None:
+            proc.kill()
+        proc.wait()
+        if not released:
+            released = True
+            _ffmpeg_slots.release()
+
     try:
-        first = await asyncio.wait_for(proc.stdout.read(CHUNK), timeout=60)
+        first = await asyncio.wait_for(run_in_threadpool(proc.stdout.read1, CHUNK), timeout=60)
     except asyncio.TimeoutError:
         first = b""
     if not first:
-        await cleanup()
+        await run_in_threadpool(cleanup)
+        log.warning("ffmpeg produced no output (exit %s): %s", proc.returncode, _scrub("".join(stderr_tail)))
         return _error(502, "extraction_failed", "We couldn't convert this file. Please try again.")
 
     async def body():
         try:
             yield first
-            while chunk := await proc.stdout.read(CHUNK):
+            while chunk := await run_in_threadpool(proc.stdout.read1, CHUNK):
                 yield chunk
         finally:
-            await cleanup()
+            await run_in_threadpool(cleanup)
 
     headers = {"Content-Disposition": _disposition(payload.get("n", "download"), inline),
                "Cache-Control": "no-store"}

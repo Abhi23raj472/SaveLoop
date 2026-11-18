@@ -11,7 +11,7 @@ from . import config, errors, tokens
 from .security import is_allowed_media_url
 
 QUALITY_TARGETS = (1080, 720, 480)
-SAFE_HEADERS = ("User-Agent", "Referer", "Origin", "Accept", "Accept-Language")
+SAFE_HEADERS = ("User-Agent", "Referer", "Origin")
 KIND_LABELS = {"instagram": "Post", "facebook": "Video", "x": "Post"}
 
 

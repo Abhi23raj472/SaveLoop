@@ -55,3 +55,33 @@ def test_serves_frontend_with_security_headers(client):
     assert r.status_code == 200 and "SaveLoop" in r.text
     assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
     assert client.get("/static/js/app.js").status_code == 200
+
+
+def test_ffmpeg_stream_end_to_end(client, monkeypatch, tmp_path):
+    import shutil
+    import subprocess
+    if not shutil.which("ffmpeg"):
+        return
+    src = tmp_path / "in.mp4"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=10",
+                    "-t", "1", "-pix_fmt", "yuv420p", str(src)], check=True)
+    monkeypatch.setattr(downloads, "build_ffmpeg_cmd", lambda p: [
+        "ffmpeg", "-loglevel", "error", "-i", str(src), "-frames:v", "1", "-f", "image2pipe", "-c:v", "png", "pipe:1"])
+    t = tokens.sign({"m": "png", "u": ["https://pbs.twimg.com/a.jpg"], "n": "x.png", "t": "image/png"})
+    r = client.get(f"/api/download/{t}")
+    assert r.status_code == 200 and r.content[:4] == b"\x89PNG"
+    assert 'filename="x.png"' in r.headers["content-disposition"]
+
+
+def test_ffmpeg_failure_returns_json(client, monkeypatch):
+    monkeypatch.setattr(downloads, "build_ffmpeg_cmd", lambda p: ["ffmpeg", "-loglevel", "error", "-i", "/nope.mp4", "-f", "null", "-"])
+    t = tokens.sign({"m": "png", "u": ["https://pbs.twimg.com/a.jpg"]})
+    r = client.get(f"/api/download/{t}")
+    assert r.status_code == 502 and r.json()["error"]["code"] == "extraction_failed"
+
+
+def test_missing_ffmpeg_is_reported(client, monkeypatch):
+    monkeypatch.setattr(downloads, "build_ffmpeg_cmd", lambda p: ["definitely-not-ffmpeg"])
+    t = tokens.sign({"m": "gif", "u": ["https://pbs.twimg.com/a.jpg"]})
+    r = client.get(f"/api/download/{t}")
+    assert r.status_code == 500 and "FFmpeg" in r.json()["error"]["message"]

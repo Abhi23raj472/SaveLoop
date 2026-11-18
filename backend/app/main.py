@@ -1,5 +1,6 @@
 """SaveLoop API and static frontend."""
 import asyncio
+import logging
 import os
 
 from fastapi import FastAPI, Request
@@ -12,6 +13,8 @@ from pydantic import BaseModel
 from . import config, downloads, errors, extractor, tokens
 from .ratelimit import RateLimiter
 from .security import validate_post_url
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s: %(message)s")
 
 app = FastAPI(title="SaveLoop", docs_url=None, redoc_url=None, openapi_url=None)
 
